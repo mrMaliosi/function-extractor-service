@@ -11,15 +11,5 @@ services:
       - ./src:/app/src
     command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Опционально: веб интерфейс
-  frontend:
-    image: node:18-alpine
-    working_dir: /app
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-    command: npm start
-
 volumes:
   logs:

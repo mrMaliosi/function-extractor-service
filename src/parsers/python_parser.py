@@ -150,7 +150,7 @@ class PythonParser(BaseParser):
             start, end = node_span(fn)
             full_text, function_text, doc, doc_lines, full_lines = build_function_texts(fn)
 
-            is_async = isinstance(fn, ast.AsyncFunctionDef)  # async-функции [web:148]
+            is_async = isinstance(fn, ast.AsyncFunctionDef)  # async-функции
             decorators = build_decorators(fn)
             params = build_params(fn)
             ret_type = build_return_type(fn)
@@ -222,7 +222,5 @@ class PythonParser(BaseParser):
                 )
             elif isinstance(stmt, ast.ClassDef):
                 visit_class(stmt)
-
-        print(out)
 
         return out

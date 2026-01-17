@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.core.language_detector import Language
 from src.parsers.base_parser import BaseParser
 from src.parsers.python_parser import PythonParser
+from src.parsers.java_parser import JavaParser
 
 
 class ParserFactory:
@@ -10,6 +11,7 @@ class ParserFactory:
 
     _registry: dict[Language, type[BaseParser]] = {
         Language.PYTHON: PythonParser,
+        Language.JAVA: JavaParser,
         # Дальше добавим: C/C++/C#/Go/Java/JS
     }
 

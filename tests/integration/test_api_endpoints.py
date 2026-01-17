@@ -20,6 +20,36 @@ def test_status_supported_languages(client):
         "python",
     ]
 
+def test_extract_python_one_function(client):
+    py = b"""\
+def f(a: int, b) -> int:
+    \"\"\"doc\"\"\"
+    return a
+"""
+    r = client.post("/extract", files={"files": ("test.py", py, "text/x-python")})
+    assert r.status_code == 200
+
+    data = r.json()
+    assert "results" in data
+    assert len(data["results"]) == 1
+
+    item = data["results"][0]
+    assert item["file"] == "test.py"
+    assert item["language"] == "python"
+    assert item["count"] == 1
+    assert item["functions"][0]["name"] == "f"
+    assert item["functions"][0]["docstring"] == "doc"
+
+
+def test_extract_unsupported_extension(client):
+    r = client.post("/extract", files={"files": ("test.xyz", b"123", "application/octet-stream")})
+    assert r.status_code == 200
+
+    data = r.json()
+    assert len(data["results"]) == 1
+    assert data["results"][0]["file"] == "test.xyz"
+    assert data["results"][0]["error"] == "Unsupported file extension"
+
 
 # import pytest
 # from fastapi.testclient import TestClient
