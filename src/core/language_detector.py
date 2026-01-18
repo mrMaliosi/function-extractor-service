@@ -13,6 +13,7 @@ class Language(str, Enum):
     GO = "go"
     JAVA = "java"
     JAVASCRIPT = "javascript"
+    PROMPT = "prompt"
 
 @dataclass(frozen=True)
 class LanguageDetector:
@@ -40,6 +41,7 @@ class LanguageDetector:
         ".jsx": Language.JAVASCRIPT,
         ".ts": Language.JAVASCRIPT,
         ".tsx": Language.JAVASCRIPT,
+        ".prompt": Language.PROMPT,
     }
     
     @classmethod
@@ -48,6 +50,33 @@ class LanguageDetector:
         ext = Path(file_path).suffix.lower()
         return cls.FILE_EXTENSIONS.get(ext)
     
+    @classmethod
+    def detect_language_patterns(cls, code: str) -> Optional[Language]:
+        """Определить язык по языковому паттерну"""
+        # 1. Проверка Python (def + двоеточие, специфичные отступы)
+        if 'def ' in code and ':' in code:
+            return Language.PYTHON
+        
+        # 2. Проверка Go (func + специфичные пакеты)
+        if 'func ' in code or 'fmt.' in code or ':=' in code:
+            return Language.GO
+        
+        # 3. JavaScript (console.log, function без типов)
+        # Важно проверить до Java/C#, так как 'function' может встречаться и там в комментариях
+        if 'console.log' in code or 'document.' in code or '===' in code:
+            return Language.JAVASCRIPT
+        
+        # 4. Различие Java и C# (самая сложная пара, так как синтаксис похож)
+        if 'using system' in code or 'console.writeline' in code or 'namespace ' in code:
+            return Language.CSHARP
+            
+        if 'system.out.println' in code or 'import java' in code or 'public static void main' in code:
+            return Language.JAVA
+
+        # Дополнительная проверка для коротких JS функций (если нет console.log)
+        if 'function ' in code and '{' in code:
+            return Language.JAVASCRIPT
+
     @classmethod
     def supported_languages(cls) -> list[Language]:
         """Вернуть список поддерживаемых языков"""
