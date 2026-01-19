@@ -10,7 +10,7 @@ class SimpleLogger:
         formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
 
         # 1. Обработчик для записи в файл
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.FileHandler(name + "_" + log_file)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
 

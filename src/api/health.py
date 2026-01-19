@@ -3,8 +3,9 @@ from fastapi import HTTPException
 
 from src.core.language_detector import LanguageDetector
 from src.dto.health import HealthResponse, StatusResponse
+from src.api.base import BaseRoutes
 
-class HealthRoutes():
+class HealthRoutes(BaseRoutes):
     """Маршруты проверки состояния сервиса."""
 
     def __init__(self, *args, **kwargs):
@@ -14,7 +15,7 @@ class HealthRoutes():
     def _setup_routes(self):
         self.router.add_api_route(
             "/health",
-            self.health_check_primary,
+            self.health_check,
             methods=["GET"],
             response_model=HealthResponse,
             summary="Проверка состояния основной модели",
@@ -23,7 +24,7 @@ class HealthRoutes():
 
         self.router.add_api_route(
             "/status",
-            self.health_check_secondary,
+            self.status_check,
             methods=["GET"],
             response_model=StatusResponse,
             summary="Проверка состояния вспомогательной модели",

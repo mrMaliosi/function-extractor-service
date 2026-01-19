@@ -1,14 +1,16 @@
 from fastapi import HTTPException
 
 from src.core.language_detector import LanguageDetector, Language
-from src.dto.commenters import CommentResponse
+from src.dto.commenters import CommentResponse, CommentRequest
 
 from src.core.language_detector import LanguageDetector, Language
 from src.core.parser_factory import ParserFactory
-import requests
+import httpx
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from src.utils.logger import SimpleLogger
+from src.api.base import BaseRoutes
 
-class CommentersRoutes():
+class CommentersRoutes(BaseRoutes):
     """Маршруты генерации комментариев."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,16 +35,16 @@ class CommentersRoutes():
             description="Генерирует текст на основе файла с кодом"
         )
 
-    async def generate_comment(functions):
+    async def generate_comment(request : CommentRequest) -> CommentResponse:
         BACKEND_URL = "http://localhost:8888"
         response = requests.post(
             f"{BACKEND_URL}/prompt",
-            functions=functions,
+            json=request.model_dump(),
             timeout=30,
         )
         response.raise_for_status()
-        result = response.json()
-    
+        return CommentResponse.model_validate(response.json())
+
     async def prompt(file: UploadFile = File(...)) -> CommentResponse:
         detector = LanguageDetector()
         factory = ParserFactory()
@@ -61,7 +63,6 @@ class CommentersRoutes():
 
         content_bytes = await file.read()
         content = content_bytes.decode("utf-8", errors="replace")
-
         functions = prompt_parser.parse_content(content)
         prompt : str = functions.docstring
         code : str = functions.full_function_text
@@ -77,21 +78,18 @@ class CommentersRoutes():
         
         functions = language_parser.parse_content(code)
         if len(functions) != 1:
-            
+            my_log: SimpleLogger = SimpleLogger("PromptRoute").get_logger()
+            my_log.debug("Неправильно распаршенный запрос:\n" + str(code))
+            return None
+        
+        request: CommentRequest = CommentRequest(prompt, functions)
 
-        generate_comment()
+        try:
+            llm_response: CommentResponse = await generate_comment(request_model)
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=503, detail=f"LLM Service unavailable: {e}")
 
-        response = CommentResponse(
-            comment=result
-            function=
-        )
-
-        return {
-            "file": file.filename,
-            "language": language.value,
-            "count": len(functions),
-            "functions": [f.__dict__ for f in functions],
-        }
+        return llm_response
 
     async def extract(files: list[UploadFile] = File(...)) -> CommentResponse:
         detector = LanguageDetector()

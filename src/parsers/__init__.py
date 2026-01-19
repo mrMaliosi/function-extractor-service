@@ -13,12 +13,12 @@ except ImportError:
 try:
     from src.parsers.c_parser import CParser
 except ImportError:
-    CSharpParser = None
+    CParser = None
 
 try:
     from src.parsers.cpp_parser import CppParser
 except ImportError:
-    CSharpParser = None
+    CppParser = None
 
 try:
     from src.parsers.go_parser import GoParser
@@ -42,7 +42,6 @@ except ImportError:
 
 __all__ = [
     "BaseParser",
-    "FunctionSignature",
     "PythonParser",
     "CppParser",
     "CParser",
