@@ -37,13 +37,14 @@ class CommentersRoutes(BaseRoutes):
 
     async def generate_comment(request : CommentRequest) -> CommentResponse:
         BACKEND_URL = "http://localhost:8888"
-        response = requests.post(
-            f"{BACKEND_URL}/prompt",
-            json=request.model_dump(),
-            timeout=30,
-        )
-        response.raise_for_status()
-        return CommentResponse.model_validate(response.json())
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{BACKEND_URL}/prompt",
+                json=request.model_dump(),
+                timeout=30.0
+            )
+            response.raise_for_status()
+            return CommentResponse.model_validate(response.json())
 
     async def prompt(file: UploadFile = File(...)) -> CommentResponse:
         detector = LanguageDetector()
