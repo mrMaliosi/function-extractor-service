@@ -1,7 +1,10 @@
 def test_health_ok(client):
     r = client.get("/health")
     assert r.status_code == 200
-    assert r.json() == {"status": "ok"}
+
+    data = r.json()
+    assert data["status"] == "ok"
+    assert data["timestamp"] is not None
 
 def test_status_supported_languages(client):
     r = client.get("/status")
@@ -9,6 +12,7 @@ def test_status_supported_languages(client):
 
     data = r.json()
     assert data["status"] == "ok"
+    assert data["timestamp"] is not None
 
     assert data["supported_languages"] == [
         "c",
@@ -17,6 +21,7 @@ def test_status_supported_languages(client):
         "go",
         "java",
         "javascript",
+        "prompt",
         "python",
     ]
 

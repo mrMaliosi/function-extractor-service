@@ -56,6 +56,11 @@ uv sync
 # Запуск сервиса
 uv run python -m src.main
 
+#uv run python -m src.main --reload --log-level debug
+
+#uvicorn src.main:app --reload --log-level debug
+
+
 # Запуск тестов
 uv run pytest -s -v
 ```

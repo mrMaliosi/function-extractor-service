@@ -9,14 +9,14 @@ class FunctionDescription:
     # Тексты и длины текстов
     full_function_text: str             # полный текст самой функции и комментарий к ней
     function_text: str                  # сама функция без комментария
-    docstring: Optional[str]            # комментарий к функции
-    full_function_lines_length: int     # число строк в коде, из которых состоит вся функция
-    function_lines_length: int          # число строк в коде, из которых состоит сама функция
-    docstring_lines_length: Optional[int]  # число строк в коде, из которых состоит комментарий
+    docstring: Optional[str] = None           # комментарий к функции
+    full_function_lines_length: int = 0    # число строк в коде, из которых состоит вся функция
+    function_lines_length: int = 0         # число строк в коде, из которых состоит сама функция
+    docstring_lines_length: Optional[int] = 0  # число строк в коде, из которых состоит комментарий
     
     # Идентификация
-    name: str                           # имя функции
-    qualified_name: str                 # например: "A.m" или "foo"
+    name: str = None                    # имя функции
+    qualified_name: str = None          # например: "A.m" или "foo"
     namespace: Optional[str] = None     # C++ namespace / Java package / C# namespace
 
     # Сигнатура

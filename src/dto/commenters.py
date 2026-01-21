@@ -3,15 +3,15 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 class CommentResponse(BaseModel):
-    """Модель Ответа для списка комментариев к функциям."""
+    """Модель ответа для возврата комментария к функции."""
 
-    comments: List[str] = Field(..., description="Список комментариев к функциям")
-    functions: List[str] = Field(..., description="Сами функции (список дат?)")
+    comment: str = Field(..., description="Комментарий к функции")
 
 
 class CommentRequest(BaseModel):
     """Модель запроса для создания комментариев к списку функций."""
 
-    tasks: List[str] = Field(..., description="Список задач/комментариев к функциям")
-    functions: List[str] = Field(..., description="Список самих функций")
+    task: str = Field(..., description="Задача к функции")
+    code: str = Field(..., description="Сама функций")
+    function: str = Field(..., description="Распаршенная функция")
 
