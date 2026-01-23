@@ -1,19 +1,13 @@
 from __future__ import annotations
+import re
 
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-class Language(str, Enum):
-    PYTHON = "python"
-    C = "c"
-    CPP = "cpp"
-    CSHARP = "csharp"
-    GO = "go"
-    JAVA = "java"
-    JAVASCRIPT = "javascript"
-    PROMPT = "prompt"
+from src.models import Language, LANGUAGE_PATTERNS
+from src.utils.logger import process_logger
 
 @dataclass(frozen=True)
 class LanguageDetector:
@@ -53,29 +47,22 @@ class LanguageDetector:
     @classmethod
     def detect_language_patterns(cls, code: str) -> Optional[Language]:
         """Определить язык по языковому паттерну"""
-        # 1. Проверка Python (def + двоеточие, специфичные отступы)
-        if 'def ' in code and ':' in code:
-            return Language.PYTHON
-        
-        # 2. Проверка Go (func + специфичные пакеты)
-        if 'func ' in code or 'fmt.' in code or ':=' in code:
-            return Language.GO
-        
-        # 3. JavaScript (console.log, function без типов)
-        # Важно проверить до Java/C#, так как 'function' может встречаться и там в комментариях
-        if 'console.log' in code or 'document.' in code or '===' in code:
-            return Language.JAVASCRIPT
-        
-        # 4. Различие Java и C# (самая сложная пара, так как синтаксис похож)
-        if 'using system' in code or 'console.writeline' in code or 'namespace ' in code:
-            return Language.CSHARP
-            
-        if 'system.out.println' in code or 'import java' in code or 'public static void main' in code:
-            return Language.JAVA
+        scores: dict[Language, int] = {lang: 0 for lang in Language}
 
-        # Дополнительная проверка для коротких JS функций (если нет console.log)
-        if 'function ' in code and '{' in code:
-            return Language.JAVASCRIPT
+        for lang, patterns in LANGUAGE_PATTERNS.items():
+            for pattern, weight in patterns:
+                if re.search(pattern, code, re.MULTILINE):
+                    scores[lang] += weight
+
+        best_lang = max(scores, key=scores.get)
+
+        if scores[best_lang] == 0:
+            return None
+        
+        process_logger.debug(f"Detected language={best_lang.value}, scores={scores}")
+
+        return best_lang
+
 
     @classmethod
     def supported_languages(cls) -> list[Language]:

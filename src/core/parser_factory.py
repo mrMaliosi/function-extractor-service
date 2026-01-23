@@ -20,36 +20,3 @@ class ParserFactory:
         if not parser_cls:
             raise NotImplementedError(f"Parser for language '{language.value}' is not implemented")
         return parser_cls()
-
-
-# from src.parsers import (
-#     PythonParser, CppParser, CParser,
-#     CSharpParser, GoParser, JavaParser,
-#     JavaScriptParser
-# )
-
-# class ParserFactory:
-#     """Фабрика для создания парсеров"""
-    
-#     _PARSERS = {
-#         Language.PYTHON: PythonParser,
-#         Language.C: CParser,
-#         Language.CPP: CppParser,
-#         Language.CSHARP: CSharpParser,
-#         Language.GO: GoParser,
-#         Language.JAVA: JavaParser,
-#         Language.JAVASCRIPT: JavaScriptParser,
-#     }
-    
-#     @classmethod
-#     def create_parser(cls, language: Language) -> BaseParser:
-#         """Создать парсер для языка"""
-#         parser_class = cls._PARSERS.get(language)
-#         if not parser_class:
-#             raise ValueError(f"Unsupported language: {language}")
-#         return parser_class()
-    
-#     @classmethod
-#     def get_supported_languages(cls) -> list[Language]:
-#         """Получить список поддерживаемых языков"""
-#         return list(cls._PARSERS.keys())

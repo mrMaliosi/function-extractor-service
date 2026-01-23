@@ -213,3 +213,34 @@ def test_javadoc_parsing(parser):
         "@see Node"
     )
     assert f.docstring == expected_docstring
+
+def test_java_parsing(parser):
+    java_code = """private Node<E> getByIndex(int index)
+        {
+            if (index < 0)
+            {
+                throw new IndexOutOfBoundsException("Index must be a positive number.");
+            }
+
+            Node<E> buffNode = head;
+            for(int i = 0; i < index; i++)
+            {
+                if (buffNode.next == null)
+                {
+                    throw new IndexOutOfBoundsException("Index [" + index + "] out of list.");
+                }
+                buffNode = buffNode.next;
+            }
+            return buffNode;
+        }
+    """
+
+    funcs = parser.parse_content(java_code)
+    assert len(funcs) == 1
+
+    f = funcs[0]
+    assert f.name == "getByIndex"
+    assert f.qualified_name == "None.getByIndex"
+    assert f.return_type == "Node<E>"
+    assert f.parameters == ["int index"]
+    assert f.visibility == "private"

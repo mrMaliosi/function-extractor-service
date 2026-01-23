@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi import FastAPI, Request
 import uvicorn
 
+from src.utils.logger import error_logger
 from src.api.health import HealthRoutes
 from src.api.commenters import CommentersRoutes
 from fastapi.responses import JSONResponse
@@ -11,9 +12,10 @@ import traceback
 
 def register_routes(app: FastAPI) -> None:
     """Создаёт инстансы роутов и регистрирует их в приложении."""
+    app.state.logging_service = error_logger
     routes = [
-        HealthRoutes(),
-        CommentersRoutes(),
+        HealthRoutes(app.state.logging_service),
+        CommentersRoutes(app.state.logging_service),
     ]
     for route in routes:
         app.include_router(route.get_router())

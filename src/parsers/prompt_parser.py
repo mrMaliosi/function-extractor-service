@@ -6,7 +6,7 @@ from typing import Optional
 
 from src.models.function_description import FunctionDescription
 from src.parsers.base_parser import BaseParser
-from src.utils.logger import SimpleLogger
+from src.utils.logger import process_logger, error_logger
 
 class PromptParser(BaseParser):
     def parse_content(self, content: str) -> list[FunctionDescription]:
@@ -33,8 +33,7 @@ class PromptParser(BaseParser):
                 break
 
         if code_start is None:
-            my_log = SimpleLogger("MainModule").get_logger()
-            my_log.debug("Не найдено начало кода для запроса:\n" + str(lines))
+            error_logger.debug("Не найдено начало кода для запроса:\n" + str(lines))
             return None
 
         prompt = "\n".join(lines[:code_start]).strip()
@@ -46,5 +45,8 @@ class PromptParser(BaseParser):
                 function_text=None,
                 docstring=prompt,
             )
-
+        
+        process_logger.debug(f"Prompt:\n{prompt}\nCode:\n{code}")
+        
+        out.append(fd)
         return out

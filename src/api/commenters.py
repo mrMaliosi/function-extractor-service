@@ -1,15 +1,18 @@
+import json
 from fastapi import HTTPException
 
 from src.core.language_detector import LanguageDetector, Language
-from src.dto.commenters import CommentResponse, CommentRequest
+from src.dto.commenters import CommentResponse, CommentRequest, GenerateRequest, GenerateResponse
 
 from src.core.language_detector import LanguageDetector, Language
 from src.core.parser_factory import ParserFactory
 import httpx
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request
-from src.utils.logger import SimpleLogger
 from src.api.base import BaseRoutes
 from src.models.function_description import FunctionDescription
+from src.utils.logger import SimpleLogger
+from src.utils.prompt_extractor import PromptExtractorService
+
 class CommentersRoutes(BaseRoutes):
     """Маршруты генерации комментариев."""
     def __init__(self, *args, **kwargs):
@@ -35,46 +38,75 @@ class CommentersRoutes(BaseRoutes):
             description="Генерирует текст на основе файла с кодом"
         )
 
-    async def prompt(self, file: UploadFile = File(...)) -> CommentResponse:
+    async def prompt(self, request: Request, req: GenerateRequest) -> GenerateResponse:
         detector = LanguageDetector()
         factory = ParserFactory()
-
-        # Парсим .prompt на задачу и функцию.
-        language = detector.detect_language(file.filename)      
-        if language is not Language.PROMPT:
-            raise HTTPException(status_code=400, detail="It is not prompt file extension.")
+        prompt_extractor = PromptExtractorService()
+        
+        data = req.model_dump(exclude_unset=True)
         try:
-            prompt_parser = factory.get_parser(language)
+            prompt = prompt_extractor.extract_prompt(data)
+        except Exception as e:
+            self.logging_service.log_error(e, context={"Extraction error."})
+            raise HTTPException(status_code=500, detail=f"Ошибка генерации: {str(e)}")
+        
+        if not prompt.strip():
+            raise HTTPException(status_code=400, detail="Не предоставлен промпт")
+
+        # Парсим .prompt на задачу и функцию.   
+        try:
+            prompt_parser = factory.get_parser(Language.PROMPT)
         except NotImplementedError as e:
             raise HTTPException(status_code=501, detail=str(e))
-        content_bytes = await file.read()
-        content = content_bytes.decode("utf-8", errors="replace")
-        functions : list[FunctionDescription] = prompt_parser.parse_content(content)
+
+        functions : list[FunctionDescription] = prompt_parser.parse_content(prompt)
         if len(functions) != 1:
-            my_log: SimpleLogger = SimpleLogger("PromptRoute").get_logger()
-            my_log.debug("Неправильно распаршенный промпт:\n" + str(content) + "\n[СТАЛО]:\n" + str(functions))
-            raise HTTPException(status_code=400, detail="Invalid prompt format")
+            error = "Invalid prompt format"
+            self.logging_service.log_error(error, context={
+                    "prompt": prompt,
+                    "parsed_functions": functions,
+                    "expected_functions": 1,
+                    "functions_count": len(functions),
+                }
+            )
+            raise HTTPException(status_code=400, detail=error)
         
         function : FunctionDescription = functions[0]
-        prompt : str = function.docstring
+        prompt_task : str = function.docstring
         code : str = function.full_function_text
 
         # Парсим функцию.
         language = detector.detect_language_patterns(code)
         if language is None:
-            raise HTTPException(status_code=400, detail="Unnown language exception")
+            error = "Unknown language"
+            self.logging_service.log_error(error, context={
+                    "code": code,
+                    "parsed_functions": str(functions),
+                })
+            raise HTTPException(status_code=400, detail="Unknown language exception")
+
         try:
             language_parser = factory.get_parser(language)
         except NotImplementedError as e:
             raise HTTPException(status_code=501, detail=str(e))
         functions = language_parser.parse_content(code)
         if len(functions) != 1:
-            my_log: SimpleLogger = SimpleLogger("PromptRoute").get_logger()
-            my_log.debug("Неправильно распаршенный запрос:\n" + str(code) + "\n[СТАЛО]:\n" + str(functions))
+            error = "Неправильно распаршенный код"
+            self.logging_service.log_error(error, context={
+                    "code": code,
+                    "parsed_functions": functions,
+                    "expected_functions": 1,
+                    "functions_count": len(functions),
+                }
+            )
             raise HTTPException(status_code=400, detail="Invalid parse")
         function = functions[0]
         
-        request: CommentRequest = CommentRequest(prompt, code, str(function))
+        request : CommentRequest = CommentRequest(
+            task=prompt_task,
+            code=code,
+            function=str(function)
+        )
 
         try:
             async def generate_comment(request : CommentRequest) -> CommentResponse:

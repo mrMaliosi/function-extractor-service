@@ -88,6 +88,10 @@ class JavaParser(BaseParser):
                 find_classes(body, qualified_class_name, current_body_offset)
 
         find_classes(content)
+        if len(functions) == 0:
+            functions = self._parse_methods(content, None, None, None, None, 0)
+
+        print(functions)
         return functions
 
     def _parse_methods(
