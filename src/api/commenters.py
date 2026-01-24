@@ -1,8 +1,8 @@
 import json
 from fastapi import HTTPException
-
+from datetime import datetime
 from src.core.language_detector import LanguageDetector, Language
-from src.dto.commenters import CommentResponse, CommentRequest, GenerateRequest, GenerateResponse
+from src.dto.commenters import CommentResponse, CommentRequest, GenerateRequest, GenerateResponse, Message, Choice
 
 from src.core.language_detector import LanguageDetector, Language
 from src.core.parser_factory import ParserFactory
@@ -43,6 +43,8 @@ class CommentersRoutes(BaseRoutes):
         factory = ParserFactory()
         prompt_extractor = PromptExtractorService()
         
+        request_id : str = f"frogcom-{datetime.now().timestamp()}"
+
         data = req.model_dump(exclude_unset=True)
         try:
             prompt = prompt_extractor.extract_prompt(data)
@@ -113,9 +115,9 @@ class CommentersRoutes(BaseRoutes):
                 BACKEND_URL = "http://localhost:8888"
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
-                        f"{BACKEND_URL}/prompt",
+                        f"{BACKEND_URL}/generate",
                         json=request.model_dump(),
-                        timeout=30.0
+                        timeout=600
                     )
                     response.raise_for_status()
                     return CommentResponse.model_validate(response.json())
@@ -123,8 +125,25 @@ class CommentersRoutes(BaseRoutes):
             llm_response: CommentResponse = await generate_comment(request)
         except httpx.HTTPError as e:
             raise HTTPException(status_code=503, detail=f"LLM Service unavailable: {e}")
+        
+        # Add merge comment and code
+        #answer = f"{llm_response.comment}\n{request.code}"
+        answer = llm_response.comment
 
-        return llm_response
+        response = GenerateResponse(
+                id=request_id,
+                created=int(datetime.now().timestamp()),
+                model="frogcom",
+                choices=[
+                    Choice(
+                        index=0,
+                        message=Message(role="assistant", content=answer),
+                        finish_reason="Generation success.",
+                    )
+                ],
+            )
+
+        return response
 
     async def extract(self, files: list[UploadFile] = File(...)) -> CommentResponse:
         detector = LanguageDetector()
