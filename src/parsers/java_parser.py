@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
 from src.models.function_description import FunctionDescription
 from src.parsers.base_parser import BaseParser
+from src.models import Language
 
 class JavaParser(BaseParser):
     """
@@ -160,6 +161,7 @@ class JavaParser(BaseParser):
             end_line = start_line + full_text.count("\n")
 
             func_desc = FunctionDescription(
+                language=str(Language.JAVA),
                 full_function_text=full_text,
                 function_text=method_body,
                 docstring=comments,

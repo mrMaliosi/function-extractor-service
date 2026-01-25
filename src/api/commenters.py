@@ -24,7 +24,7 @@ class CommentersRoutes(BaseRoutes):
             "/prompt",
             self.prompt,
             methods=["POST"],
-            response_model=CommentResponse,
+            response_model=GenerateResponse,
             summary="Генерация комментария к функции по промпту",
             description="Генерирует текст на основе промпта или сообщений"
         )
@@ -46,6 +46,7 @@ class CommentersRoutes(BaseRoutes):
         request_id : str = f"frogcom-{datetime.now().timestamp()}"
 
         data = req.model_dump(exclude_unset=True)
+        print(data)
         try:
             prompt = prompt_extractor.extract_prompt(data)
         except Exception as e:
@@ -55,13 +56,15 @@ class CommentersRoutes(BaseRoutes):
         if not prompt.strip():
             raise HTTPException(status_code=400, detail="Не предоставлен промпт")
 
+        print(prompt)
+
         # Парсим .prompt на задачу и функцию.   
         try:
             prompt_parser = factory.get_parser(Language.PROMPT)
         except NotImplementedError as e:
             raise HTTPException(status_code=501, detail=str(e))
 
-        functions : list[FunctionDescription] = prompt_parser.parse_content(prompt)
+        functions: list[FunctionDescription] = prompt_parser.parse_content(prompt)
         if len(functions) != 1:
             error = "Invalid prompt format"
             self.logging_service.log_error(error, context={
@@ -73,12 +76,12 @@ class CommentersRoutes(BaseRoutes):
             )
             raise HTTPException(status_code=400, detail=error)
         
-        function : FunctionDescription = functions[0]
-        prompt_task : str = function.docstring
-        code : str = function.full_function_text
+        function: FunctionDescription = functions[0]
+        prompt_task: str = function.docstring
+        code: str = function.full_function_text
 
         # Парсим функцию.
-        language = detector.detect_language_patterns(code)
+        language: Language = detector.detect_language_patterns(code)
         if language is None:
             error = "Unknown language"
             self.logging_service.log_error(error, context={
@@ -87,21 +90,29 @@ class CommentersRoutes(BaseRoutes):
                 })
             raise HTTPException(status_code=400, detail="Unknown language exception")
 
-        try:
-            language_parser = factory.get_parser(language)
-        except NotImplementedError as e:
-            raise HTTPException(status_code=501, detail=str(e))
-        functions = language_parser.parse_content(code)
-        if len(functions) != 1:
-            error = "Неправильно распаршенный код"
-            self.logging_service.log_error(error, context={
-                    "code": code,
-                    "parsed_functions": functions,
-                    "expected_functions": 1,
-                    "functions_count": len(functions),
-                }
+        if language in factory.get_supported_languages():
+            try:
+                language_parser = factory.get_parser(language)
+            except NotImplementedError as e:
+                raise HTTPException(status_code=501, detail=str(e))
+            functions = language_parser.parse_content(code)
+            if len(functions) != 1:
+                error = "Неправильно распаршенный код"
+                self.logging_service.log_error(error, context={
+                        "code": code,
+                        "parsed_functions": functions,
+                        "expected_functions": 1,
+                        "functions_count": len(functions),
+                    }
+                )
+                raise HTTPException(status_code=400, detail="Invalid parse")
+        else:
+            functions = []
+            tmp_f = FunctionDescription(
+                language=str(language),
             )
-            raise HTTPException(status_code=400, detail="Invalid parse")
+            functions.append(tmp_f)
+
         function = functions[0]
         
         request : CommentRequest = CommentRequest(
@@ -111,7 +122,7 @@ class CommentersRoutes(BaseRoutes):
         )
 
         try:
-            async def generate_comment(request : CommentRequest) -> CommentResponse:
+            async def generate_comment(request : CommentRequest) -> dict:
                 BACKEND_URL = "http://localhost:8888"
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
@@ -120,18 +131,19 @@ class CommentersRoutes(BaseRoutes):
                         timeout=600
                     )
                     response.raise_for_status()
-                    return CommentResponse.model_validate(response.json())
+                    return response.json()
 
-            llm_response: CommentResponse = await generate_comment(request)
+            llm_response: dict = await generate_comment(request)
         except httpx.HTTPError as e:
             raise HTTPException(status_code=503, detail=f"LLM Service unavailable: {e}")
         
         # Add merge comment and code
         #answer = f"{llm_response.comment}\n{request.code}"
-        answer = llm_response.comment
+        answer : str = llm_response["comment"]
 
-        response = GenerateResponse(
+        final_response = GenerateResponse(
                 id=request_id,
+                object="text_completion",
                 created=int(datetime.now().timestamp()),
                 model="frogcom",
                 choices=[
@@ -143,7 +155,7 @@ class CommentersRoutes(BaseRoutes):
                 ],
             )
 
-        return response
+        return final_response
 
     async def extract(self, files: list[UploadFile] = File(...)) -> CommentResponse:
         detector = LanguageDetector()

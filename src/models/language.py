@@ -12,6 +12,10 @@ class Language(str, Enum):
     JAVA = "java"
     JAVASCRIPT = "javascript"
     PROMPT = "prompt"
+    
+    def __str__(self) -> str:
+        """Возвращает строковое представление языка программирования."""
+        return str(self.value)
 
 
 LANGUAGE_PATTERNS: dict[Language, list[tuple[str, int]]] = {

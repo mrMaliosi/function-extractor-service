@@ -36,9 +36,8 @@ class PromptParser(BaseParser):
             error_logger.debug("Не найдено начало кода для запроса:\n" + str(lines))
             return None
 
-        prompt = "\n".join(lines[:code_start]).strip()
-        code = "\n".join(lines[code_start:]).strip()
-
+        prompt = "".join(lines[:code_start]).strip()
+        code = "".join(lines[code_start:]).strip()
 
         fd = FunctionDescription(
                 full_function_text=code,

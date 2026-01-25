@@ -20,3 +20,6 @@ class ParserFactory:
         if not parser_cls:
             raise NotImplementedError(f"Parser for language '{language.value}' is not implemented")
         return parser_cls()
+
+    def get_supported_languages(self) -> list[Language]:
+        return list(self._registry.keys())

@@ -5,6 +5,7 @@ from typing import Optional
 
 from src.models.function_description import FunctionDescription
 from src.parsers.base_parser import BaseParser
+from src.models import Language
 
 
 class PythonParser(BaseParser):
@@ -169,6 +170,7 @@ class PythonParser(BaseParser):
             function_len = function_text.count("\n") + (0 if function_text.endswith("\n") or function_text == "" else 1)
 
             return FunctionDescription(
+                language=str(Language.PYTHON),
                 full_function_text=full_text,
                 function_text=function_text,
                 docstring=doc,

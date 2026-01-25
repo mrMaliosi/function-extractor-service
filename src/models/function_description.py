@@ -5,11 +5,12 @@ from typing import Optional
 @dataclass
 class FunctionDescription:
     """Унифицированное описание функции/метода для всех парсеров."""
-    
+    language: str
+
     # Тексты и длины текстов
-    full_function_text: str             # полный текст самой функции и комментарий к ней
-    function_text: str                  # сама функция без комментария
-    docstring: Optional[str] = None           # комментарий к функции
+    full_function_text: str = None         # полный текст самой функции и комментарий к ней
+    function_text: str = None              # сама функция без комментария
+    docstring: Optional[str] = None        # комментарий к функции
     full_function_lines_length: int = 0    # число строк в коде, из которых состоит вся функция
     function_lines_length: int = 0         # число строк в коде, из которых состоит сама функция
     docstring_lines_length: Optional[int] = 0  # число строк в коде, из которых состоит комментарий
